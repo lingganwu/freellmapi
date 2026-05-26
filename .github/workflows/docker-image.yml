@@ -3,8 +3,6 @@ name: Docker Image CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 env:
   REGISTRY: ghcr.io
@@ -12,25 +10,19 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # 必须显式声明权限，否则会报 write_package 错误
     permissions:
       contents: read
-      packages: write
-      id-token: write
+      packages: write # 必须保留
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. 转换名称为全小写（解决之前的语法报错）
-      - name: Prepare Image Name
-        id: prep
+      # 强制将仓库路径转为全小写，避免路径不匹配导致的权限拒绝
+      - name: Lowercase Repo Name
         run: |
-          # 提取仓库名并转为小写
-          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          echo "IMAGE_NAME=$REPO_LOWER" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
-      # 2. 登录到 GitHub 容器注册表
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -38,21 +30,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. 提取元数据
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=sha,format=short
-
-      # 4. 构建并推送
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          # 使用转为小写后的环境变量
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
