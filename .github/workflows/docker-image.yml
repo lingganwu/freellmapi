@@ -27,17 +27,18 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # 使用内置函数将仓库名转为小写，确保推送成功
+          # 此插件会自动将镜像路径（包含用户名）转换为合规的小写格式
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
 
-      - name: Build and push
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
+          # 既然 Dockerfile 已在根目录，context 设为 . 即可
           context: .
           file: ./Dockerfile
           push: true
-          # 引用 metadata-action 生成的正规化标签
+          # 引用上面生成的合规标签
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
