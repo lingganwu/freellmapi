@@ -2,8 +2,8 @@ name: Build and Publish Docker Image
 
 on:
   push:
-    branches: [ "main", "master" ] # 当你向 main 或 master 分支推送代码时触发
-  workflow_dispatch: # 允许你在 GitHub 页面上点按钮手动触发
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -40,5 +40,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ id.meta.outputs.tags }}
-          labels: ${{ id.meta.outputs.labels }}
+          # 修正后的引用语法：steps.meta.outputs
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
