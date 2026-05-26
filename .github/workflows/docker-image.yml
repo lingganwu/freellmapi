@@ -1,12 +1,17 @@
-name: Build and Publish Docker Image
+name: Docker Image CI
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  # 这里的变量稍后会在步骤中被转为小写
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,29 +21,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 关键修复步骤：处理名称大小写问题
+      - name: Prepare Image Name
+        id: prep
+        run: |
+          # 将 REGISTRY 和 REPOSITORY 转换为全小写并存入环境变量
+          LOWERCased_IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=$LOWERCased_IMAGE_NAME" >> $GITHUB_ENV
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # 此插件会自动将镜像路径（包含用户名）转换为合规的小写格式
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
+            type=sha,format=short
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          # 既然 Dockerfile 已在根目录，context 设为 . 即可
           context: .
-          file: ./Dockerfile
           push: true
-          # 引用上面生成的合规标签
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # 如果你有多个平台需求（如 arm64），可以取消下面注释
+          # platforms: linux/amd64,linux/arm64
