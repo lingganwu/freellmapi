@@ -31,7 +31,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY:lower }}/${{ env.IMAGE_NAME:lower }}
           tags: |
             type=raw,value=latest
 
@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./server/Dockerfile
           push: true
-          # 修正后的引用语法：steps.meta.outputs
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
