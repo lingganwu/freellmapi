@@ -12,22 +12,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write # 必须保留
+      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 强制将仓库路径转为全小写，避免路径不匹配导致的权限拒绝
       - name: Lowercase Repo Name
         run: |
           echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
-      - name: Log in to the Container registry
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}   # ← 必须改成这个
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
@@ -35,5 +34,4 @@ jobs:
         with:
           context: .
           push: true
-          # 使用转为小写后的环境变量
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
